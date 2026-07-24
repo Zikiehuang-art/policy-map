@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>循环经济政策地图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #0f172a; color: #e2e8f0; padding-bottom: 70px; }
+  #header { position: sticky; top: 0; z-index: 100; background: linear-gradient(135deg, #1e293b, #0f172a); padding: 12px 14px; border-bottom: 1px solid #334155; }
+  #header h1 { font-size: 16px; font-weight: 700; }
+  #header .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  #filters { position: sticky; top: 58px; z-index: 99; background: rgba(15,23,42,0.95); padding: 8px 10px; display: flex; gap: 6px; overflow-x: auto; border-bottom: 1px solid #1e293b; scrollbar-width: none; }
+  #filters::-webkit-scrollbar { display: none; }
+  #filters button { flex-shrink: 0; padding: 7px 14px; border-radius: 16px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  #filters button.on { background: #dc2626; border-color: #ef4444; color: #fff; }
+
+  #stats { padding: 10px 14px; font-size: 12px; color: #64748b; }
+  #stats span { color: #94a3b8; }
+
+  #cards { padding: 0 10px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px; cursor: pointer; }
+  .card:active { background: #273548; }
+  .card .top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .card .emoji { font-size: 24px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card .info { flex: 1; min-width: 0; }
+  .card .name { font-size: 14px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; }
+  .card .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag { padding: 2px 7px; border-radius: 4px; font-size: 10px; white-space: nowrap; }
+  .tag-cn { background: rgba(239,68,68,0.2); color: #f87171; }
+  .tag-intl { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .tag-biz { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .card .desc { font-size: 12px; color: #94a3b8; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .arrow { color: #475569; font-size: 14px; flex-shrink: 0; align-self: center; }
+
+  #detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
+  #detail { display: none; position: fixed; bottom: 0; left: 0; right: 0; max-height: 80vh; overflow-y: auto; background: rgba(15,23,42,0.99); border-top: 2px solid #475569; border-radius: 16px 16px 0 0; padding: 16px; z-index: 201; -webkit-overflow-scrolling: touch; }
+  #detail .handle { width: 32px; height: 4px; background: #475569; border-radius: 2px; margin: 0 auto 14px; }
+  #detail .close { float: right; width: 30px; height: 30px; background: #334155; border: none; border-radius: 50%; color: #94a3b8; font-size: 16px; cursor: pointer; }
+  #detail h3 { font-size: 15px; margin-bottom: 10px; margin-right: 35px; }
+  #detail h4 { font-size: 13px; margin: 10px 0 4px; }
+  #detail p { font-size: 13px; color: #94a3b8; line-height: 1.7; margin-bottom: 3px; }
+  #detail ul { padding-left: 16px; margin: 4px 0; }
+  #detail li { font-size: 12px; color: #cbd5e1; line-height: 1.7; margin-bottom: 2px; }
+  #detail b { color: #e2e8f0; }
+  #detail .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155; }
+  #detail .link-btn { padding: 6px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; border: 1px solid #475569; }
+  .link-source { background: rgba(59,130,246,0.15); color: #60a5fa; }
+
+  .empty { text-align: center; padding: 60px 20px; color: #475569; font-size: 14px; }
+
+  #footer { text-align: center; padding: 20px; font-size: 11px; color: #334155; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>🔄 循环经济政策地图</h1>
+  <div class="sub">32 项关键政策 · 点击卡片查看详情</div>
+</div>
+
+<div id="filters">
+  <button class="on" onclick="filter('all',this)">全部</button>
+  <button onclick="filter('core',this)">🌐 核心</button>
+  <button onclick="filter('battery',this)">🔋 电池</button>
+  <button onclick="filter('solid',this)">🏭 固废</button>
+  <button onclick="filter('hazard',this)">⚠️ 危废</button>
+  <button onclick="filter('auto',this)">🚗 汽车</button>
+  <button onclick="filter('cn',this)">🇨🇳 国内</button>
+  <button onclick="filter('intl',this)">🇪🇺 国际</button>
+</div>
+
+<div id="stats"><span id="count">32</span> 项政策</div>
+<div id="cards"></div>
+
+<div id="detail-overlay" onclick="closeDetail()"></div>
+<div id="detail">
+  <div class="handle"></div>
+  <button class="close" onclick="closeDetail()">✕</button>
+  <h3 id="detail-title"></h3>
+  <div id="detail-body"></div>
+  <div class="links" id="detail-links"></div>
+</div>
+<div id="footer">循环经济双碳政策 · 交互式知识地图</div>
+
+<script>
+// === DATA ===
+const policies = [
+  {id:"ceap", name:"欧盟循环经济行动计划 CEAP", emoji:"🇪🇺", biz:"core", country:"intl", level:"EU法规",
+   pub:"欧盟委员会 · 2020年3月",
+   desc:"欧盟绿色新政关键组成部分，覆盖电子ICT、电池汽车、包装、塑料、纺织品、建筑、食品七大重点行业。2027年起所有产品需配数字护照，2030年循环材料使用率目标24%。",
+   full:`<ul><li>欧盟绿色新政关键组成部分，覆盖<b>七大重点行业</b></li><li>设计端：2027年起所有产品需配"数字护照"，强制可维修性设计</li><li>生产端：CRMA要求2040年本土加工比例达40%</li><li>消费端：绿色声明指令严打"漂绿"，2026年起环境声明需独立认证</li><li><b>2030目标</b>：循环材料使用率24%，包装废弃物减15%，关键原材料回收率25%</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52020DC0098", urlLabel:"EUR-Lex COM(2020)98 final"},
+  {id:"espr", name:"可持续产品生态设计法规 ESPR", emoji:"🇪🇺", biz:"core", country:"intl", level:"EU法规",
+   pub:"欧盟委员会 · 2023年通过",
+   desc:"取代2009年生态设计指令，覆盖几乎所有实体商品。16项性能指标推动全生命周期优化，2027年全面强制实施。",
+   full:`<ul><li>覆盖范围从能源相关产品扩展至<b>几乎所有实体商品</b></li><li>16项性能指标：耐用性5000次循环、可修复性10年备件</li><li>纺织品再生聚酯≥50%，塑料制品再生料≥30%，铝制品再生铝≥50%</li><li><b>数字产品护照</b>：2026年上线，区块链记录材料来源、碳足迹、维修指南</li><li>2026年起禁止销毁未售出纺织品和鞋类</li><li>📅 2027年全面强制实施生态设计要求</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1781", urlLabel:"Regulation (EU) 2024/1781"},
+  {id:"greenclaims", name:"绿色声明指令", emoji:"🇪🇺", biz:"core", country:"intl", level:"EU指令",
+   pub:"欧盟委员会 · 2024.3.26生效",
+   desc:"打击企业漂绿，禁止使用宽泛模糊表述。一切环境声明须基于科学证据和LCA，经独立第三方认证。2026.9.27起全面实施。",
+   full:`<ul><li>禁止使用"环保""生态友好""可生物降解"等<b>宽泛模糊表述</b></li><li>一切环境声明须基于科学证据和生命周期评估(LCA)，经<b>独立第三方认证</b></li><li>禁止基于碳抵消宣称"碳中和""气候中性"</li><li>📅 2026.9.27起全面实施；违规：最高<b>年营业额4%</b>罚款</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024L0825", urlLabel:"Directive (EU) 2024/825"},
+  {id:"ppwr", name:"包装与包装废弃物法规 PPWR", emoji:"🇪🇺", biz:"core", country:"intl", level:"EU法规",
+   pub:"欧盟 · 2025.2.11生效",
+   desc:"取代1994年包装指令，直接适用于所有成员国。A-C可回收性分级，2035年后仅允许A/B级上市。2030年PET包装再生材料≥30%。",
+   full:`<ul><li>取代1994年包装指令，从"指令"升级为<b>"法规"</b>，直接适用于所有成员国</li><li><b>可回收性A-C分级</b>：A级95%可回收；2035年后仅允许A/B级上市</li><li>食品接触包装PFAS浓度≤25ppb（2026.8生效）</li><li>再生材料强制：2030年PET包装≥30%，2040年≥50%</li><li>📅 2030目标减5%，2040目标减15%（以2018年为基准）</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R0040", urlLabel:"Regulation (EU) 2025/40"},
+  {id:"elv", name:"报废车辆管理条例 ELV", emoji:"🇪🇺", biz:"core", country:"intl", level:"EU法规",
+   pub:"欧盟委员会 · 2023.7提案",
+   desc:"欧盟年产600万辆报废车，再生材料使用率不足15%。新车再生塑料比例20%，禁止填埋汽车碎渣。2031年法规全面生效。",
+   full:`<ul><li>全球汽车消耗42%铝、17%钢铁、10%塑料，再生材料使用率<b>不足15%</b></li><li>新车再生塑料比例<b>20%</b>（15%来自报废车辆，3%车到车闭环）</li><li>车辆模块化设计，车企每5年提交循环战略报告</li><li>禁止填埋汽车碎渣，限制废旧车辆出口至非OECD国家</li><li>📅 2031年法规全面生效</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52023PC0451", urlLabel:"COM(2023)451 final"},
+  {id:"cn_waste", name:"国务院废弃物循环利用体系意见", emoji:"🇨🇳", biz:"core", country:"cn", level:"国务院",
+   pub:"国务院办公厅 · 2024年2月",
+   desc:"国办发〔2024〕7号。双碳目标关键部署，提升至国家战略高度。2025年大宗固废年利用量40亿吨，资源循环利用产业年产值5万亿元。",
+   full:`<ul><li>2025初步建成覆盖全领域体系 → 2030运转效率世界前列</li><li>📅 2025年：大宗固废年利用量<b>40亿吨</b>，产业年产值<b>5万亿元</b></li><li>首次将退役动力电池、光伏组件、数据中心设备纳入监管</li><li>三大攻坚：低值可回收物、废旧动力电池、新基建废弃物</li><li>推行"生产者责任延伸+"模式，试点电池碳足迹核算与再生材料强制比例</li></ul>`,
+   url:"https://www.gov.cn/zhengce/content/202402/content_6930538.htm", urlLabel:"国办发〔2024〕7号"},
+  {id:"eu_battery", name:"欧盟电池与废电池法规", emoji:"🇪🇺", biz:"battery", country:"intl", level:"EU法规",
+   pub:"欧盟 · 2023.8.17生效",
+   desc:"覆盖所有在欧盟销售电池的全生命周期。2027年数字电池护照强制执行，2031年再生材料钴16%、锂6%、镍6%、铅85%。违规罚全球营业额4%。",
+   full:`<ul><li>覆盖<b>所有在欧盟销售电池</b>的全生命周期（设计→生产→回收）</li><li>📅 2027.2.18：<b>数字电池护照</b>强制执行，碳足迹分级限值生效</li><li>📅 2031.8.18：再生材料强制达标——<b>钴16%、锂6%、镍6%、铅85%</b></li><li>📅 2036：再生材料升级——钴26%、锂12%、镍15%</li><li>碳足迹阈值：初始~80kgCO₂e/kWh → 2031年收紧至<b>60kgCO₂e/kWh</b></li><li>违规：最高全球营业额<b>4%</b>罚款</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1542", urlLabel:"Regulation (EU) 2023/1542"},
+  {id:"adr", name:"危险货物运输协定 ADR", emoji:"🇪🇺", biz:"battery", country:"intl", level:"国际条约",
+   pub:"UNECE · 2023修订",
+   desc:"国际危险货物道路运输核心法规。锂电池归类为第9类危险物质，须通过联合国跌落测试。2025年强制隧道分类通行制度。",
+   full:`<ul><li>整合43个缔约国标准，消除跨国运输法规碎片化</li><li>锂电池归类为<b>第9类（杂类危险物质）</b></li><li>包装须通过联合国1.8米跌落测试和24小时堆码测试</li><li><b>禁止与易燃物、氧化剂混运</b></li><li>📅 2025：强制隧道分类通行制度（A-E五级）</li><li>📅 2026：数字运输文件(e-CMR)全面替代纸质运单</li></ul>`,
+   url:"https://unece.org/transport/dangerous-goods/adr-2023", urlLabel:"ECE/TRANS/326 ADR 2023"},
+  {id:"epr", name:"生产者责任延伸制度 EPR", emoji:"🇪🇺", biz:"battery", country:"intl", level:"EU制度",
+   pub:"欧盟 · 2025.8.18电池EPR生效",
+   desc:"将生产者责任扩展至全生命周期。电池行业销一收一模式，2025年回收率超90%。2026年成员国完成立法转化。",
+   full:`<ul><li>将生产者责任从生产环节<b>扩展至全生命周期</b></li><li>电池行业："销一收一"模式，2025年回收率超<b>90%</b></li><li>包装行业：禁止过度包装，2030年运输包装再利用率40%</li><li>生产者须自建或委托回收网络，按销量支付处理费用</li><li>📅 2026年成员国完成立法转化</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1542", urlLabel:"电池法规(2023/1542)+PPWR(2025/40)"},
+  {id:"crma", name:"关键原材料法案 CRMA", emoji:"🇪🇺", biz:"solid", country:"intl", level:"EU法案",
+   pub:"欧盟 · 2024.5.23生效",
+   desc:"欧盟战略自主核心工具，17种战略原材料+34种关键原材料。2030年目标：加工≥40%、回收≥25%、单一第三国≤65%。",
+   full:`<ul><li><b>17种战略原材料</b>（锂镍钴石墨稀土）+ <b>34种关键原材料</b></li><li>📅 2030年四大目标：开采≥10%、加工≥<b>40%</b>、回收≥25%、单一第三国≤<b>65%</b></li><li>开采项目审批27个月，加工/回收项目审批15个月</li><li>大型企业每两年开展供应链压力测试</li><li>目标将对华依赖从97%降至65%以下</li></ul>`,
+   url:"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1252", urlLabel:"Regulation (EU) 2024/1252"},
+  {id:"oecd_oil", name:"OECD 废油管理指南", emoji:"🇪🇺", biz:"hazard", country:"intl", level:"国际指南",
+   pub:"OECD · 2022 Edition",
+   desc:"成员国废油全生命周期环境无害化管理框架。优先再生利用，反对降级用作燃料。1吨再生油可获3吨CO₂减排奖励。",
+   full:`<ul><li><b>优先再生利用</b>：通过再精炼再生为润滑油基础油，反对降级用作燃料</li><li><b>污染者付费</b>：废油产生者承担环境治理成本</li><li>含PAHs/重金属等有毒废油须用最佳可行技术(BAT)处理</li><li>跨境运输须符合《巴塞尔公约》事先知情同意</li><li>碳积分：1吨再生油可获<b>3吨CO₂</b>减排奖励</li></ul>`,
+   url:"https://www.oecd.org/en/publications/guidance-on-environmentally-sound-management-of-waste-oils.html", urlLabel:"OECD 2022 Edition"},
+  {id:"iscc", name:"欧盟 ISCC 认证", emoji:"🇪🇺", biz:"hazard", country:"intl", level:"认证",
+   pub:"ISCC System GmbH",
+   desc:"ISCC EU为欧盟REDII认可强制性认证。ISCC PLUS全行业适用。ISCC CORSIA进入SAF市场。全供应链区块链追溯。",
+   full:`<ul><li><b>ISCC EU</b>：欧盟REDII认可强制性认证</li><li><b>ISCC PLUS</b>：全行业适用（食品/塑料/纺织等）</li><li><b>ISCC CORSIA</b>：国际航空碳抵消与减排计划认可，GHG减排≥60%</li><li>全供应链追溯：强制使用电子追溯系统（区块链）</li></ul>`,
+   url:"https://www.iscc-system.org/", urlLabel:"ISCC System GmbH"},
+  {id:"cn_715", name:"报废机动车回收管理办法 715号令", emoji:"🇨🇳", biz:"auto", country:"cn", level:"国务院",
+   pub:"国务院令第715号 · 2019.6.1实施",
+   desc:"允许五大总成再制造，取消旧金属参考价，市场化自主协商定价。环保要求作为企业资质认定必要条件。",
+   full:`<ul><li>🚀 最大突破：允许<b>发动机、变速箱等"五大总成"再制造</b></li><li>取消收购价参照旧金属市场的规定，由市场主体<b>自主协商定价</b></li><li>推行"先照后证"简化审批</li><li>环保要求作为企业资质认定<b>必要条件</b></li><li>新能源汽车回收预留：将另行制定管理细则</li></ul>`,
+   url:"https://www.gov.cn/zhengce/content/2019-05/06/content_5389083.htm", urlLabel:"国务院令第715号"},
+  {id:"cn_battery_recycle", name:"动力蓄电池回收利用管理暂行办法", emoji:"🇨🇳", biz:"battery", country:"cn", level:"多部委",
+   pub:"工信部等七部门 · 2018年",
+   desc:"汽车生产企业为回收主体，须建立覆盖全国的回收服务网点。国家溯源管理平台强制上传全流程数据。先梯次后再生原则。",
+   full:`<ul><li>汽车生产企业为回收主体，须建立<b>覆盖全国的回收服务网点</b></li><li>建立国家溯源管理平台：强制上传生产、销售、维修、报废全流程数据</li><li>"先梯次后再生"原则：退役电池经检测降级用于储能、基站备电</li><li>白名单制度筛选合规企业，目前仅回收约<b>25%</b>退役电池</li><li>鼓励"电池银行""残值交易"等创新模式</li></ul>`,
+   url:"https://www.miit.gov.cn/", urlLabel:"工信部联节〔2018〕43号"},
+  {id:"cn_energy_storage", name:"新型储能制造高质量发展行动方案", emoji:"🇨🇳", biz:"battery", country:"cn", level:"部委",
+   pub:"工信部等 · 2025年发布",
+   desc:"2027年培育3-5家生态主导型企业。储能电池需求突破100GWh。有价金属回收率≥95%，AI健康评估优化拆解。",
+   full:`<ul><li>📅 2027年目标：培育<b>3-5家生态主导型企业</b>，锂电池系统效率从82%→90%+</li><li>储能电池需求突破<b>100GWh</b></li><li>全国逆向回收网络，"源头回收—集中转运—专业处理"闭环</li><li>再生材料比例：2027年再生钴镍≥10%，2030年≥20%</li><li>长寿命高安全技术：固态电池、全气候电池研发</li></ul>`,
+   url:"https://www.miit.gov.cn/", urlLabel:"工信部 2025年发布"},
+  {id:"cn_7dept", name:"七部门加强报废机动车监管通知", emoji:"🇨🇳", biz:"auto", country:"cn", level:"多部委",
+   pub:"商务部等七部门 · 2024年",
+   desc:"对715号令的补充强化，打通回收→拆解→再制造全产业链。2024年10-12月专项整治打击非法拆解和倒卖拼装车。",
+   full:`<ul><li>对715号令和再制造暂行办法的<b>补充强化</b>，打通全产业链</li><li>地方政府定期发布拆解产能预警，防止盲目投资</li><li>📅 <b>2024年10-12月专项整治</b>：打击非法拆解/倒卖拼装车/伪造证明</li><li>技术方向：精细化拆解+数字化转型+线上平台扩大回用件销售</li><li>七部门信息共享联合执法，举报渠道实名保密</li></ul>`,
+   url:"https://www.mofcom.gov.cn/", urlLabel:"商务部 2024年通知"},
+  {id:"cn_reman", name:"汽车零部件再制造规范管理暂行办法", emoji:"🇨🇳", biz:"auto", country:"cn", level:"部委",
+   pub:"发改委等 · 发改环资规〔2021〕528号",
+   desc:"我国首部汽车零部件再制造系统性法规。节材70%，节能60%，降低生产成本30%-50%。仅限售后维修市场。",
+   full:`<ul><li>我国首部针对汽车零部件再制造行业的<b>系统性法规</b></li><li>再制造定义：性能<b>不低于原型新品</b></li><li>资源效益：节材<b>70%</b>，节能<b>60%</b>，降低生产成本30%-50%</li><li>⚠️ 仅限售后维修市场，<b>禁止再制造产品进入整车生产环节</b></li><li>鼓励政府/公共机构优先采购；支持保险公司纳入维修备件体系</li></ul>`,
+   url:"https://www.ndrc.gov.cn/", urlLabel:"发改环资规〔2021〕528号"},
+  {id:"cn_cu_al_import", name:"再生铜铝原料进口管理公告", emoji:"🇨🇳", biz:"solid", country:"cn", level:"多部委",
+   pub:"生态环境部/海关总署等六部门 · 2024.11.15实施",
+   desc:"符合标准的再生铜铝原料不再被视为固体废物，可自由进口。再生铝新增纯铝和变形铝合金原料类别。",
+   full:`<ul><li>核心调整：符合标准的再生铜铝原料<b>不再被视为固体废物</b>，可自由进口</li><li>再生铜原料调整为三类：铜线、混合铜料、铜米</li><li>再生铝新增：<b>再生纯铝</b>和<b>再生变形铝合金</b>原料</li><li>性能指标：再生纯铝≥91%，铜线类≥97%，夹杂物≤0.8%</li><li>放射性检验<b>强制</b>：辐射剂量率≤天然本底值+0.25μSv/h</li></ul>`,
+   url:"https://www.mee.gov.cn/", urlLabel:"六部门 2024年公告"},
+  {id:"cn_device_renewal", name:"以标准提升牵引设备更新行动方案", emoji:"🇨🇳", biz:"solid", country:"cn", level:"部委",
+   pub:"国家标准委等 · 2024年",
+   desc:"三线并进：循环经济体系构建+设备更新+消费品以旧换新。家电一级能效占比提至75%以上。汽车新能源安全+智能网联标准。",
+   full:`<ul><li><b>三线并进</b>：循环经济体系 + 设备更新 + 消费品以旧换新</li><li>回收标准化：制定家电、电池、光伏设备回收拆解标准</li><li>设备更新：修订火电/钢铁/焦炭能耗限额，北斗高精度标准</li><li>汽车：新能源安全标准+充换电设施+智能网联标准</li><li>家电：冰箱空调一级能效占比提至<b>75%以上</b></li><li>新兴消费：无人机、智能家居标准供给</li></ul>`,
+   url:"https://www.gov.cn/", urlLabel:"国市监标技发〔2024〕"},
+  {id:"cn_cu_al", name:"废铜铝加工利用行业规范条件", emoji:"🇨🇳", biz:"solid", country:"cn", level:"部委",
+   pub:"工信部/生态环境部 · 2024年",
+   desc:"铜对外依存度76%、铝55%，小作坊占市场40%。产能门槛：废铜≥10万吨/年，废铝≥5万吨/年。金属回收率≥98%。",
+   full:`<ul><li>铜对外依存度76%、铝55%；再生金属碳排放仅为原生<b>20%-30%</b></li><li>产能门槛：废铜≥10万吨/年，废铝≥5万吨/年</li><li>金属回收率<b>≥98%</b>，能耗≤12kg标准煤/吨金属</li><li>粉尘收集效率≥90%，废气颗粒物≤10mg/m³（严于国标15mg/m³）</li><li>📅 2026年起新项目须满足规范，达标企业增值税即征即退50%</li></ul>`,
+   url:"https://www.miit.gov.cn/", urlLabel:"工信部/生态环境部 2024年"},
+  {id:"cn_oil_tax", name:"废矿物油再生免征消费税公告", emoji:"🇨🇳", biz:"hazard", country:"cn", level:"部委",
+   pub:"财政部/税务总局 · 财税〔2023〕69号",
+   desc:"继续免征消费税至2027年12月31日。条件：废矿物油≥90%重量，每吨产润滑油基础油≥0.65吨。",
+   full:`<ul><li>继续对废矿物油生产的再生油品免征消费税，期限延长至<b>2027年12月31日</b></li><li>条件①：危废经营许可证含"利用"</li><li>条件②：6个月内排放达标证明</li><li>条件③：生产原料中废矿物油重量<b>≥90%</b></li><li>条件④：每吨废矿物油产润滑油基础油<b>≥0.65吨</b></li></ul>`,
+   url:"https://www.chinatax.gov.cn/", urlLabel:"财税〔2023〕69号"},
+  {id:"gb33598", name:"动力电池回收拆解规范 GB/T 33598", emoji:"🇨🇳", biz:"battery", country:"cn", level:"国标",
+   pub:"国家标准委 · GB/T 33598（新版）",
+   desc:"三级流程：预处理→包(组)拆解→模组拆解。锂回收率从85%→90%，镍钴锰≥98%。再生利用≥5000吨/年。",
+   full:`<ul><li>技术升级：锂回收率从85%→<b>90%</b>，镍钴锰≥98%</li><li><b>三级流程</b>：预处理→包(组)拆解→模组拆解</li><li>强制高压绝缘工具+防短路设计，禁止暴力拆解</li><li>再生利用≥5000吨/年，梯次≥1000吨/年</li><li>环保：工艺废水循环率≥90%</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 33598 新版"},
+  {id:"gb30102", name:"塑料废弃物回收再利用指南 GB/T 30102", emoji:"🇨🇳", biz:"solid", country:"cn", level:"国标",
+   pub:"国家标准委 · GB/T 30102-2024",
+   desc:"按PET/PE/PP分类+统一标识系统。质量分级A/B/C三级。分选精度≥95%，一级再生料(食品级)符合GB 4806.7。",
+   full:`<ul><li>按塑料类型(PET/PE/PP)分类+统一标识系统</li><li>质量分级：<b>A级(低污染)、B级(中污染)、C级(高污染)</b></li><li>分选精度≥95%（红外分选+AI视觉），清洗水循环≥80%</li><li>三种处理技术：机械回收→化学回收→能量回收</li><li>一级再生料(食品接触级)符合GB4806.7</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 30102-2024"},
+  {id:"gb18597", name:"危险废物贮存污染控制标准 GB 18597", emoji:"🇨🇳", biz:"hazard", country:"cn", level:"国标",
+   pub:"生态环境部 · GB 18597-2023",
+   desc:"与欧盟废物框架指令基本接轨，但双层防渗和信息化追溯更严。贮存期限一般不超过1年，电子台账保存≥10年。",
+   full:`<ul><li>与国际接轨，但<b>双层防渗和信息化追溯更严</b></li><li>贮存场所须<b>双层防渗</b>(HDPE膜+混凝土)，渗透系数≤1×10⁻¹²cm/s</li><li>贮存期限一般<b>不超过1年</b></li><li>地下水每年1次、大气每季度1次环境监测</li><li>电子台账保存≥<b>10年</b>，全国固废管理信息系统联网申报</li></ul>`,
+   url:"https://www.mee.gov.cn/", urlLabel:"GB 18597-2023"},
+  {id:"gb17145", name:"废矿物油回收与再生利用导则 GB/T 17145", emoji:"🇨🇳", biz:"hazard", country:"cn", level:"国标",
+   pub:"国家标准委 · GB/T 17145-2024",
+   desc:"覆盖9类废矿物油。组合工艺二选一：蒸馏→溶剂精制 或 蒸馏→加氢精制。全面禁止硫酸-白土精制等落后工艺。",
+   full:`<ul><li>覆盖：9类废矿物油（机油/液压油/齿轮油/变压器油/切削油等）</li><li><b>组合工艺二选一</b>：①预处理→蒸馏→溶剂精制 或 ②预处理→蒸馏→加氢精制</li><li>全面禁止：❌硫酸-白土精制、❌三氯化铝-白土精制、❌间歇釜式蒸馏</li><li>信息化：电子地磅+电子标签+电子管理台账，记录保存≥10年</li><li>产物：硫≤0.5%、PAHs≤10mg/kg</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 17145-2024"},
+  {id:"gb45090", name:"再生塑料标识和标志 GB/T 45090", emoji:"🇨🇳", biz:"solid", country:"cn", level:"国标",
+   pub:"国家标准委 · GB/T 45090-2024",
+   desc:"三级分级管控体系：管控类(强制限制重金属)、声明类(自愿标注石棉等)、预警类(风险提示)，推动同级循环。",
+   full:`<ul><li><b>三级分级管控体系</b></li><li>管控类(强制)：六价铬/铅/镉/汞100-1000mg/kg，PBB/PBDEs≤1000mg/kg</li><li>声明类(自愿)：石棉/六氯丁二烯等"不应检出"</li><li>预警类：风险提示(多氯化萘/全氟化合物)</li><li>目标：推动再生塑料从"降级使用"向"同级循环"跨越</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 45090-2024"},
+  {id:"gb44728", name:"回用件溯源管理规范 GB/T 44728", emoji:"🇨🇳", biz:"auto", country:"cn", level:"国标",
+   pub:"国家市场监管总局/标准委 · GB/T 44728-2024",
+   desc:"2024.10.26发布实施。回用件唯一溯源码，二维码/条形码载体。企业须6个月内完成编码系统和信息平台升级。",
+   full:`<ul><li>回用件分配<b>唯一溯源码</b>：企业代码+年份+月份+顺序号</li><li>二维码/条形码载体，消费者扫码可查完整生命周期信息</li><li>检测按SB/T11237标准质量分级</li><li>企业须建立或接入国家级溯源信息平台</li><li>须在标准生效后<b>6个月内</b>完成编码系统和信息平台升级</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 44728-2024"},
+  {id:"cn_dismantle", name:"回用件拆卸技术规范", emoji:"🇨🇳", biz:"auto", country:"cn", level:"国标",
+   pub:"国家市场监管总局/标准委 · 2024.10.26发布",
+   desc:"先易后难、分类拆解原则。标准流程：放油排水→拆轮胎→拆覆盖件→分离发动机→检测。推广智能化拆解设备。",
+   full:`<ul><li><b>"先易后难、分类拆解"原则</b></li><li>标准流程：放油排水→拆轮胎→拆覆盖件→分离发动机变速箱→检测性能</li><li>废液<b>分类收集</b>(机油/冷却液)，废气净化处理</li><li>合格件标注唯一溯源码(含企业代码+拆解时间)</li><li>推广智能化拆解设备(机器人辅助拆卸)+物联网监测系统</li></ul>`,
+   url:"https://std.samr.gov.cn/", urlLabel:"GB/T 2024 回用件拆卸规范"},
+  {id:"cn_battery_comprehensive", name:"动力电池综合利用行业规范条件", emoji:"🇨🇳", biz:"battery", country:"cn", level:"部委",
+   pub:"工信部 · 2024年本",
+   desc:"注册资本≥1000万元。再生利用产能≥5000吨/年。锂回收率90%，镍钴锰≥98%。禁止梯次利用电池用于电动自行车。",
+   full:`<ul><li>注册资本≥1000万元（实缴≥500万），新建企业须进入产业园区</li><li>再生利用产能<b>≥5000吨/年</b>，梯次利用≥1000吨/年</li><li>锂回收率<b>90%</b>，镍钴锰≥98%，碳酸锂能耗≤2200kg标准煤/吨</li><li>安全：红外监控+烟雾报警+专职巡查</li><li>⚠️ <b>禁止梯次利用电池用于电动自行车</b></li></ul>`,
+   url:"https://www.miit.gov.cn/", urlLabel:"工信部 2024年本"},
+  {id:"hj1186", name:"废锂电池处理污染控制技术规范 HJ 1186", emoji:"🇨🇳", biz:"battery", country:"cn", level:"技术规范",
+   pub:"生态环境部 · HJ 1186-2021（试行）",
+   desc:"六环节全流程管控：入厂检测→拆解→焙烧分选→材料回收→排放控制→运行监测。禁止直接焙烧未拆解电池包。",
+   full:`<ul><li><b>六环节全流程管控</b>：入厂检测→拆解→焙烧分选→材料回收→排放控制→运行监测</li><li>破损/漏液/冒烟电池须专用防爆容器单独存放</li><li>禁止直接焙烧未拆解的电池包/模块</li><li>含电解质破碎须<b>负压自动化</b>操作</li><li>危废按GB18597贮存交资质单位，一般固废按GB18599管理</li></ul>`,
+   url:"https://www.mee.gov.cn/", urlLabel:"HJ 1186-2021"},
+  {id:"hj364", name:"废塑料污染控制技术规范 HJ 364", emoji:"🇨🇳", biz:"solid", country:"cn", level:"技术规范",
+   pub:"生态环境部 · HJ 364-2022",
+   desc:"覆盖工业源+生活源+农业源废塑料。工业企业分类贮存+台账保存3年。禁用有毒清洗剂。物理/化学/能量回收三路径。",
+   full:`<ul><li>覆盖：工业源+生活源+农业源+医疗机构可回收物废塑料</li><li>工业企业分类贮存+台账<b>保存3年</b>，农业源严禁丢弃或焚烧</li><li>预处理：气流/X射线荧光分选；<b>禁用有毒清洗剂</b></li><li>物理再生：优先节能熔融造粒</li><li>化学再生：连续生产设备，废弃催化剂合规处置</li></ul>`,
+   url:"https://www.mee.gov.cn/", urlLabel:"HJ 364-2022"},
+  {id:"cn_carbon_lca", name:"锂电池碳足迹量化方法与要求 T/CQAE 12002", emoji:"🇨🇳", biz:"battery", country:"cn", level:"团标",
+   pub:"中国电子质量管理协会 · T/CQAE 12002-2024",
+   desc:"国内首个锂电池碳足迹统一核算标准，填补90%以上非车用锂电池场景空白。全生命周期LCA方法。",
+   full:`<ul><li>国内首个锂电池碳足迹统一核算标准，填补<b>90%以上</b>非车用场景空白</li><li>适用：消费型/小动力型(≤5kWh)/储能型锂电池</li><li>明确<b>排除</b>电动汽车用动力电池</li><li>全生命周期LCA方法：原材料→生产→运输→使用→废弃</li><li>当前平均碳足迹<b>80-100kgCO₂e/kWh</b>，欧盟要求<60</li></ul>`,
+   url:"https://www.cqae.org.cn/", urlLabel:"T/CQAE 12002-2024"},
+];
+
+// === RENDER ===
+const bizNames = {core:"核心政策", battery:"电池业务", solid:"固废业务", hazard:"危废业务", auto:"报废汽车"};
+const bizColors = {core:"rgba(245,158,11,0.15)", battery:"rgba(6,182,212,0.15)", solid:"rgba(167,139,250,0.15)", hazard:"rgba(249,115,22,0.15)", auto:"rgba(16,185,129,0.15)"};
+
+function getCountryColor(c) { return c === 'cn' ? '#dc2626' : '#2563eb'; }
+function getBorderColor(c) { return c === 'cn' ? '#ef4444' : '#3b82f6'; }
+
+let currentFilter = 'all';
+
+function render(filter) {
+  currentFilter = filter;
+  let list = policies;
+  if (filter === 'cn') list = policies.filter(p => p.country === 'cn');
+  else if (filter === 'intl') list = policies.filter(p => p.country === 'intl');
+  else if (filter !== 'all') list = policies.filter(p => p.biz === filter);
+  
+  document.getElementById('count').textContent = list.length;
+  
+  const cards = document.getElementById('cards');
+  if (list.length === 0) {
+    cards.innerHTML = '<div class="empty">没有匹配的政策</div>';
+    return;
+  }
+  
+  cards.innerHTML = list.map(p => `
+    <div class="card" onclick="showDetail('${p.id}')" style="border-left: 3px solid ${getBorderColor(p.country)}">
+      <div class="top">
+        <div class="emoji">${p.country === 'cn' ? '🇨🇳' : '🇪🇺'}</div>
+        <div class="info">
+          <div class="name">${p.name}</div>
+          <div class="tags">
+            <span class="tag ${p.country==='cn'?'tag-cn':'tag-intl'}">${p.level}</span>
+            <span class="tag" style="background:${bizColors[p.biz]};color:${'fbbf24'===p.biz?'#fbbf24':p.biz==='battery'?'#22d3ee':p.biz==='solid'?'#a78bfa':p.biz==='hazard'?'#fb923c':'#34d399'}">${bizNames[p.biz]}</span>
+          </div>
+        </div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="desc">${p.desc}</div>
+    </div>
+  `).join('');
+}
+
+function showDetail(id) {
+  const p = policies.find(x => x.id === id);
+  if (!p) return;
+  
+  document.getElementById('detail-title').textContent = p.name;
+  document.getElementById('detail-body').innerHTML = `
+    <p style="margin-bottom:8px"><span class="tag ${p.country==='cn'?'tag-cn':'tag-intl'}" style="font-size:11px;padding:3px 8px">${p.country==='cn'?'🇨🇳 国内':'🇪🇺 国际'} · ${p.level}</span> <span class="tag" style="background:${bizColors[p.biz]};color:${p.biz==='core'?'#fbbf24':p.biz==='battery'?'#22d3ee':p.biz==='solid'?'#a78bfa':p.biz==='hazard'?'#fb923c':'#34d399'};font-size:11px;padding:3px 8px">${bizNames[p.biz]}</span></p>
+    <p style="font-size:12px;color:#64748b;margin-bottom:12px">📅 ${p.pub}</p>
+    ${p.full}
+  `;
+  document.getElementById('detail-links').innerHTML = p.url ? 
+    `<a class="link-btn link-source" href="${p.url}" target="_blank">📎 原文全文 →</a>` : '';
+  
+  document.getElementById('detail').style.display = 'block';
+  document.getElementById('detail-overlay').style.display = 'block';
+  document.getElementById('detail').scrollTop = 0;
+}
+
+function closeDetail() {
+  document.getElementById('detail').style.display = 'none';
+  document.getElementById('detail-overlay').style.display = 'none';
+}
+
+function filter(type, btn) {
+  document.querySelectorAll('#filters button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render(type);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// Initial render
+render('all');
+</script>
+</body>
+</html>
